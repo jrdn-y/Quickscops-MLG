@@ -366,11 +366,14 @@ function onMsg(m) {
 let ws = null;
 function connect() {
   if (location.protocol === 'file:') { $('online').textContent = 'Offline (run the server for multiplayer)'; return; }
-  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
-  ws.onmessage = e => { try { onMsg(JSON.parse(e.data)); } catch (err) { console.error(err); } };
-  ws.onopen = () => ($('online').textContent = '● Connected');
-  ws.onclose = () => {
-    $('online').textContent = 'Server offline — practice still works';
+  const sock = ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+  // a VPN or proxy can stall the handshake forever; give up and retry instead of hanging on "Connecting…"
+  const stall = setTimeout(() => { if (sock.readyState === 0) sock.close(); }, 8000);
+  sock.onmessage = e => { try { onMsg(JSON.parse(e.data)); } catch (err) { console.error(err); } };
+  sock.onopen = () => { clearTimeout(stall); $('online').textContent = '● Connected'; };
+  sock.onclose = () => {
+    clearTimeout(stall);
+    $('online').textContent = 'Can\'t reach server (VPN or firewall?) — retrying… Practice still works';
     if (G.on && G.kind === 'online') { leave(); banner('Disconnected', 2500); }
     if (document.querySelector('#queue.on')) screen('menu');
     setTimeout(connect, 3000);
