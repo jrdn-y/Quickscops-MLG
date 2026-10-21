@@ -77,7 +77,20 @@ const sfx = {
 
 // ---------- renderer & world ----------
 const canvas = $('c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+let renderer, noGL = false;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+} catch (err) {
+  // keep the menu and server connection alive so the player sees why instead of a frozen page
+  console.error(err);
+  noGL = true;
+  const nop = () => {};
+  renderer = { setPixelRatio: nop, setSize: nop, clear: nop, render: nop, clearDepth: nop, shadowMap: {} };
+  $('glerr').innerHTML = '3D graphics (WebGL) are disabled in this browser, so the game can\'t draw. ' +
+    'In Firefox: open <b>about:config</b>, set <b>webgl.disabled</b> to false and <b>webgl.force-enabled</b> to true, ' +
+    'and turn on hardware acceleration in Settings, then restart Firefox. Or try Chrome/Chromium.';
+  $('glerr').style.display = 'block';
+}
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -406,6 +419,7 @@ function randomWaypoint() {
   return [0, 0];
 }
 function startPractice() {
+  if (noGL) return;
   const ts = +$('pteam').value, diff = $('pdiff').value, warm = $('pwarm').checked;
   const names = BOTNAMES.slice().sort(() => Math.random() - 0.5);
   const roster = [{ id: 1, name: cfg.name || 'You', team: 0 }];
@@ -704,6 +718,7 @@ function leave() {
   unlockPointer(); screen('menu');
 }
 function queue(mode) {
+  if (noGL) return;
   if (!ws || ws.readyState !== 1) { banner('Server offline — try practice', 2000); $('hud').classList.add('on'); setTimeout(() => !G.on && $('hud').classList.remove('on'), 2100); return; }
   send({ t: 'queue', mode, name: cfg.name || 'Player', code: $('code').value });
   $('qtext').textContent = `Searching for ${mode}…`;

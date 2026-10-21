@@ -100,6 +100,7 @@ td,th{padding:4px 8px;text-align:left}th{color:var(--mut);font-size:11px;text-tr
   <button data-act="practice">Practice vs Bots<small>Same rules, offline, adjustable difficulty</small></button>
   <button data-act="rules">MLG Rules</button>
   <button data-act="settings">Settings &amp; Controls</button>
+  <div id="glerr" style="display:none;font:600 13px/1.45 system-ui;color:#ffb3b3;background:#3a1212;border:1px solid #ff4d4d;padding:10px;margin-top:10px"></div>
   <div id="status"><span id="online">Connecting…</span><span id="padhint"></span></div>
 </div></div>
 
@@ -162,6 +163,21 @@ td,th{padding:4px 8px;text-align:left}th{color:var(--mut);font-size:11px;text-tr
   <button data-act="leave">Back to menu</button>
 </div></div>
 
+<script>
+// if the game module crashes or never loads, show why instead of a frozen "Connecting…"
+(function () {
+  let first = null;
+  const show = msg => {
+    const el = document.getElementById('glerr');
+    if (!el || el.style.display === 'block') return;
+    el.textContent = 'The game failed to start: ' + msg + ' — try a hard refresh (Ctrl+Shift+R) or another browser.';
+    el.style.display = 'block';
+  };
+  addEventListener('error', e => { first = first || (e.message || (e.target && e.target.src) || 'unknown error'); }, true);
+  addEventListener('unhandledrejection', e => { first = first || String(e.reason); });
+  setTimeout(() => { if (!window.__qs) show(first || 'script did not load'); }, 6000);
+})();
+</script>
 <script type="module" src="/game.js"></script>
 </body>
 </html>
